@@ -19,6 +19,7 @@ import {
   Layers,
   Send,
   Zap,
+  Globe,
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import {
@@ -45,6 +46,7 @@ import AutomationGuide from './AutomationGuide';
 import SheetSelectorModal from './SheetSelectorModal';
 import WorkspaceConfirmModal from './WorkspaceConfirmModal';
 import GoogleSignInButton from './GoogleSignInButton';
+import VercelGatewayPanel from './VercelGatewayPanel';
 
 export default function TelebirrDashboard() {
   // Auth state
@@ -60,7 +62,7 @@ export default function TelebirrDashboard() {
   const [isSheetModalOpen, setIsSheetModalOpen] = useState(false);
 
   // Tab navigation
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'single' | 'batch' | 'automation'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'gateway' | 'single' | 'batch' | 'automation'>('dashboard');
 
   // Transaction data
   const [transactions, setTransactions] = useState<ParsedTelebirrSMS[]>([]);
@@ -685,6 +687,7 @@ export default function TelebirrDashboard() {
         <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 overflow-x-auto">
           {[
             { id: 'dashboard', label: 'Ledger & Analytics', icon: FileSpreadsheet },
+            { id: 'gateway', label: 'Vercel Gateway (sms-gateway-chi-six.vercel.app)', icon: Globe, badge: 'New' },
             { id: 'single', label: 'Single SMS Parser', icon: Sparkles },
             { id: 'batch', label: 'Batch SMS Import', icon: Layers },
             { id: 'automation', label: 'Phone Automation Setup', icon: Smartphone },
@@ -702,7 +705,12 @@ export default function TelebirrDashboard() {
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                {tab.label}
+                <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-400 text-zinc-950">
+                    {tab.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -975,6 +983,20 @@ export default function TelebirrDashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {/* TAB: Vercel Gateway & Test */}
+        {activeTab === 'gateway' && (
+          <VercelGatewayPanel
+            appUrl={typeof window !== 'undefined' ? window.location.origin : ''}
+            activeSpreadsheetId={activeSpreadsheetId}
+            activeSheetTitle={activeSheetTitle}
+            activeSheetName={activeSheetName}
+            accessToken={accessToken}
+            webhookLogs={webhookLogs}
+            onRefreshLogs={fetchWebhookLogs}
+            onRefreshSheet={loadSheetRows}
+          />
         )}
 
         {/* TAB 4: Phone Automation Setup */}

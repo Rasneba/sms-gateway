@@ -7,14 +7,20 @@ export interface WebhookLogItem {
   rawMessage: string;
   parsed: ParsedTelebirrSMS;
   status: 'pending' | 'synced' | 'ignored';
+  source?: string;
   error?: string;
+  directSyncTarget?: string;
 }
 
 // In-memory ring buffer for recently received webhook SMS messages
 const globalWebhookLogs: WebhookLogItem[] = [];
 const MAX_LOGS = 100;
 
-export function addWebhookSMS(rawMessage: string, sender: string = 'telebirr'): WebhookLogItem {
+export function addWebhookSMS(
+  rawMessage: string,
+  sender: string = 'telebirr',
+  source: string = 'Webhook'
+): WebhookLogItem {
   const parsed = parseTelebirrSMS(rawMessage);
   const logItem: WebhookLogItem = {
     id: `hook_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -22,6 +28,7 @@ export function addWebhookSMS(rawMessage: string, sender: string = 'telebirr'): 
     sender,
     rawMessage,
     parsed,
+    source,
     status: parsed.isValidTelebirr ? 'pending' : 'ignored',
   };
 

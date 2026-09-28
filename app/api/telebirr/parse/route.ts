@@ -2,12 +2,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { parseTelebirrSMS } from '@/lib/telebirr-parser';
 
+function getCorsHeaders(origin: string | null) {
+  return {
+    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+  };
+}
+
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get('origin');
+  return new NextResponse(null, {
+    status: 204,
+    headers: getCorsHeaders(origin),
+  });
+}
+
 export async function POST(req: NextRequest) {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   try {
     const { text, useAI } = await req.json();
 
     if (!text || typeof text !== 'string') {
-      return NextResponse.json({ error: 'Text is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Text is required' }, { status: 400, headers: corsHeaders });
     }
 
     // First run local high-speed regex parser
@@ -15,7 +35,10 @@ export async function POST(req: NextRequest) {
 
     // If local result has high confidence or useAI is false, return immediately
     if (!useAI && localResult.confidence === 'high') {
-      return NextResponse.json({ success: true, result: localResult, method: 'regex' });
+      return NextResponse.json(
+        { success: true, result: localResult, method: 'regex' },
+        { headers: corsHeaders }
+      );
     }
 
     // If AI is enabled and Gemini API key is configured
@@ -52,32 +75,44 @@ Return ONLY valid JSON matching this schema:
         const rawJson = response.text?.trim() || '{}';
         const aiParsed = JSON.parse(rawJson);
 
-        return NextResponse.json({
-          success: true,
-          result: {
-            id: localResult.id,
-            transactionId: aiParsed.transactionId || localResult.transactionId,
-            amount: typeof aiParsed.amount === 'number' ? aiParsed.amount : localResult.amount,
-            currency: 'ETB',
-            type: aiParsed.type || localResult.type,
-            senderName: aiParsed.senderName || localResult.senderName,
-            senderPhone: aiParsed.senderPhone || localResult.senderPhone,
-            date: aiParsed.date || localResult.date,
-            balance: aiParsed.balance !== undefined ? aiParsed.balance : localResult.balance,
-            rawText: text,
-            isValidTelebirr: aiParsed.isValidTelebirr ?? localResult.isValidTelebirr,
-            confidence: 'high',
+        return NextResponse.json(
+          {
+            success: true,
+            result: {
+              id: localResult.id,
+              transactionId: aiParsed.transactionId || localResult.transactionId,
+              amount: typeof aiParsed.amount === 'number' ? aiParsed.amount : localResult.amount,
+              currency: 'ETB',
+              type: aiParsed.type || localResult.type,
+              senderName: aiParsed.senderName || localResult.senderName,
+              senderPhone: aiParsed.senderPhone || localResult.senderPhone,
+              date: aiParsed.date || localResult.date,
+              balance: aiParsed.balance !== undefined ? aiParsed.balance : localResult.balance,
+              rawText: text,
+              isValidTelebirr: aiParsed.isValidTelebirr ?? localResult.isValidTelebirr,
+              confidence: 'high',
+            },
+            method: 'gemini-ai',
           },
-          method: 'gemini-ai',
-        });
+          { headers: corsHeaders }
+        );
       } catch (geminiError) {
         console.warn('Gemini parser fallback to regex:', geminiError);
-        return NextResponse.json({ success: true, result: localResult, method: 'regex-fallback' });
+        return NextResponse.json(
+          { success: true, result: localResult, method: 'regex-fallback' },
+          { headers: corsHeaders }
+        );
       }
     }
 
-    return NextResponse.json({ success: true, result: localResult, method: 'regex' });
+    return NextResponse.json(
+      { success: true, result: localResult, method: 'regex' },
+      { headers: corsHeaders }
+    );
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Parsing failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Parsing failed' },
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
