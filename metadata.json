@@ -1,0 +1,6 @@
+{
+  "name": "Telebirr SMS SheetSync",
+  "description": "Automatically capture Telebirr deposit SMS messages and sync transaction IDs and amounts into Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
